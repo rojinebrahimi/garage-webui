@@ -60,3 +60,33 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Return the secret name, with validation when enabled.
+*/}}
+{{- define "garage-webui.secretName" -}}
+{{- if and .Values.secretRefs .Values.secretRefs.enabled }}
+  {{- if not .Values.secretRefs.name }}
+    {{- fail "secretRefs.name must be set when secretRefs.enabled=true" }}
+  {{- end }}
+{{- end }}
+{{- if .Values.secretRefs }}{{ .Values.secretRefs.name | default "" }}{{ end }}
+{{- end }}
+
+{{/*
+Generate env variables based on secretRefs.keys.
+*/}}
+{{- define "garage-webui.secretEnv" -}}
+{{- if and .Values.secretRefs .Values.secretRefs.enabled .Values.secretRefs.keys }}
+{{- $secretName := include "garage-webui.secretName" . }}
+{{- range $envName, $keyName := .Values.secretRefs.keys }}
+{{- if $keyName }}
+- name: {{ $envName }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secretName }}
+      key: {{ $keyName }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

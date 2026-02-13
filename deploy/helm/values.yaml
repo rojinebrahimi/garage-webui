@@ -55,6 +55,12 @@ service:
   port: 80
   targetPort: 3909
 
+httproute:
+  enabled: false
+  annotations: {}
+  parentRefs: []
+  hostnames: []
+
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: false
@@ -107,17 +113,25 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-# Additional volumes on the output Deployment definition.
+# Additional volumes on the pod (merged with built-in config volume when config.enabled).
+# Each volume here must have a matching mount in volumeMounts.
 volumes: []
-# - name: foo
+# - name: certs
 #   secret:
-#     secretName: mysecret
+#     secretName: my-tls-secret
 #     optional: false
+# - name: extra-config
+#   configMap:
+#     name: my-config
 
-# Additional volumeMounts on the output Deployment definition.
+# Additional volumeMounts for the main container (merged with config mount when config.enabled).
+# Names must match entries in volumes.
 volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
+# - name: certs
+#   mountPath: /etc/certs
+#   readOnly: true
+# - name: extra-config
+#   mountPath: /etc/extra
 #   readOnly: true
 
 nodeSelector: {}
@@ -135,3 +149,20 @@ garageConfig:
 auth:
   # Generate this using: htpasswd -nbBC 10 "admin" "yourpassword"
   userPassHash: ""
+
+# API credentials (admin API key, auth hash) from an existing Secret.
+# When enabled, env vars are set via secretKeyRef; otherwise values from garageConfig.adminApiKey and auth.userPassHash are used.
+secretRefs:
+  enabled: false
+  # Name of the existing Secret (required when enabled)
+  name: ""
+  # Map of environment variable names to Secret data keys
+  keys:
+    API_ADMIN_KEY: ""   # e.g. "admin-api-key"
+    AUTH_USER_PASS: ""  # e.g. "user-pass-hash"
+
+config:
+  # -- Enable mounting of the config file
+  enabled: false
+  # -- Name of the ConfigMap to mount
+  name: "garage-webui-config"
